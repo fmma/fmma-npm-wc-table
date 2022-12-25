@@ -29,10 +29,10 @@ export class FmmaTable<T = any> extends LitElement {
 
     override renderRoot: HTMLElement | ShadowRoot = this;
 
-    @property({ type: Array })
+    @property({ type: Array, attribute: false })
     rows: T[] = [];
 
-    @property({ type: Array })
+    @property({ type: Array, attribute: false })
     fields?: Field<T>[];
 
     @property({ type: Function })
@@ -70,17 +70,14 @@ export class FmmaTable<T = any> extends LitElement {
         search: () => {
             const input = document.getElementById("searchinput") as HTMLInputElement;
             this._searchText = input.value.toLocaleLowerCase('da-DK');
-            this.requestUpdate();
         },
 
         hideCol: (field: Field<T>) => () => {
             this._hiddenCols = [...this._hiddenCols, field.field];
-            this.requestUpdate();
         },
 
         unhideCol: (fieldField: StringKeyOf<T>) => () => {
             this._hiddenCols = this._hiddenCols.filter(y => fieldField !== y);
-            this.requestUpdate();
         },
 
         sortCol: (field: Field<T>) => () => {
@@ -96,8 +93,6 @@ export class FmmaTable<T = any> extends LitElement {
             else {
                 this._sortState = this._sortState.filter(x => x.field !== field.field);
             }
-
-            this.requestUpdate();
         },
 
         filterCol: (field: Field<T>, value: string) => (event: Event) => {
@@ -114,7 +109,6 @@ export class FmmaTable<T = any> extends LitElement {
                 const newValues = values.filter(x => x !== value);
                 this._filterState = [...this._filterState.filter(x => x.field !== field.field), { field: field.field, values: newValues }];
             }
-            this.requestUpdate();
         },
 
         filterToggle: (field: Field<T>, values: string[]) => (event: Event) => {
@@ -125,14 +119,12 @@ export class FmmaTable<T = any> extends LitElement {
             else {
                 this._filterState = [...this._filterState.filter(x => x.field !== field.field), { field: field.field, values }];
             }
-            this.requestUpdate();
         },
 
         filterColAll: (field: Field<T>, values: string[]) => (event: Event) => {
             const elt = event.composedPath()[0] as HTMLInputElement;
             const checked = elt.checked;
             this._filterState = [...this._filterState.filter(x => x.field !== field.field), { field: field.field, values: checked ? values : [] }]
-            this.requestUpdate();
         },
 
         cellClick: (cell: Cell<T>) => (event: MouseEvent) => {
@@ -148,19 +140,16 @@ export class FmmaTable<T = any> extends LitElement {
             else {
                 this._selectedRows = [cell.originalIndex];
             }
-            this.requestUpdate();
         },
 
         deleteSelected: async () => {
             const is = this._selectedRows;
             this._selectedRows = [];
             await this.delete?.(is);
-            this.requestUpdate();
         },
 
         addRow: async () => {
             await this.add?.();
-            this.requestUpdate();
         }
     }
 
