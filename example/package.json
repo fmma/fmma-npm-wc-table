@@ -1,0 +1,22 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -p ../wc-table && tsc && rollup -c",
+    "watch": "concurrently \"tsc -w -p ../wc-table\" \"tsc -w\" \"rollup -c -w\"",
+    "clean": "rm -rf lib node_modules dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@fmma-npm/wc-table": "../wc-table",
+    "concurrently": "^7.6.0",
+    "lit": "^2.5.0",
+    "rollup": "^2.72.1",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0"
+  }
+}
