@@ -1,15 +1,32 @@
 {
   "name": "@fmma-npm/wc-table",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.0",
+  "description": "A web-component table tag <fmma-table>",
+  "keywords": ["web-components", "table"],
   "main": "lib/index.js",
+  "types": "./lib/index.d.ts",
+  "homepage": "https://github.com/fmma/fmma-npm-wc-table",
+  "repository": {
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/fmma/fmma-npm-wc-table.git"
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/fmma/fmma-npm-wc-table/issues",
+    "email": "frederik.meisner@gmail.com"
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
     "clean": "rm -rf lib node_modules",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": {
+    "name": "Frederik Bregnhøj Meisner Madsen",
+    "email": "frederik.meisner@gmail.com",
+    "url": "https://github.com/fmma"
+  },
   "license": "ISC",
   "dependencies": {
     "lit": "^2.5.0"
