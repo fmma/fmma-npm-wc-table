@@ -166,7 +166,7 @@ export class FmmaTable<T = any> extends LitElement {
                     text,
                     searchText: text.toLocaleLowerCase('da-DK'),
                     sortValue: this._sortValue(field, value),
-                    classes: [this._align(field, value), ...this._selectedRows.includes(i) ? ['selected'] : []],
+                    classes: [this._align(field, value), ...this._selectedRows.includes(i) ? ['fmma-selected'] : []],
                     originalIndex: i,
                     render: () => field.render?.(x, i) ?? text
                 };
@@ -215,18 +215,6 @@ export class FmmaTable<T = any> extends LitElement {
                     text-shadow: 1px 1px 1px #fff;
                 }
 
-
-                .fmma-table thead th .fmma-table-buttons {
-                    display: none;
-                    position:absolute;
-                    right:0;
-                    top:0;
-                }
-
-                .fmma-table thead th:hover .fmma-table-buttons {
-                    display: block;
-                }
-
                 .fmma-table tbody td {
                     border: solid 1px #DDEEEE;
                     color: #333;
@@ -234,44 +222,57 @@ export class FmmaTable<T = any> extends LitElement {
                     text-shadow: 1px 1px 1px #fff;
                 }
 
-                .selected {
+                .fmma-table thead th .fmma-table-buttons {
+                    display: none;
+                    position:absolute;
+                    right: 1px;
+                    top: 0px;
+                }
+
+                .fmma-table thead th:hover .fmma-table-buttons {
+                    display: block;
+                    background-color: white;
+                    border: solid 1px #DDEEEE;
+                    border-radius: 2px;
+                }
+
+                .fmma-table .fmma-selected {
                     background-color: #DDEFEF;
                 }
 
-                .align-left {
+                .fmma-table .fmma-align-left {
                     text-align: left;
                 }
 
-                .align-center {
+                .fmma-table .fmma-align-center {
                     text-align: center;
                 }
 
-                .align-right {
+                .fmma-table .fmma-align-right {
                     text-align: right;
                 }
 
-                button.fa-solid {
+                .fmma-table .fmma-table-button {
                     border: none;
                     background: rgba(1,1,1,0.1);
                     border-radius: 5px;
-                    font: 14px;
-                }
-
-                .fa-solid {
+                    width: 20px;
                     opacity: 0.25;
 
                     padding: 2px;
                     margin: 0;
                 }
 
-                .fa-solid:hover:not([disabled]) {
+                .fmma-table .fmma-table-button:hover:not([disabled]) {
                     opacity: 1;
+
+                    cursor: pointer;
                 }
-                .fa-solid:focus:not([disabled]) {
+                .fmma-table .fmma-table-button:focus:not([disabled]) {
                     opacity: 1;
                 }
 
-                .fmma-table-filter-values {
+                .fmma-table .fmma-table-filter-values {
                     display:none;
                     background:white;
                     text-align:left;
@@ -281,12 +282,12 @@ export class FmmaTable<T = any> extends LitElement {
                     z-index: 1;
                 }
 
-                .display-block {
+                .fmma-table .fmma-display-block {
                     display: block;
                 }
             </style>
 
-            <span class="fa-solid fa-magnifying-glass"></span>
+            <span class="fmma-table-button fa-solid fa-magnifying-glass"></span>
             <input type="text" id="searchinput" @keyup=${events.search} placeholder="Søg her...">
 
             ${this._hiddenCols.length > 0 ? html`
@@ -295,7 +296,7 @@ export class FmmaTable<T = any> extends LitElement {
                     <summary>Skjulte kolonner</summary>
                     ${this._hiddenCols.map(x => html`
                     <div>
-                        <button class="fa-solid fa-eye" @click=${events.unhideCol(x)}></button>
+                        <button class="fmma-table-button fa-solid fa-eye" @click=${events.unhideCol(x)}></button>
 
                         ${x}
                     </div>
@@ -311,15 +312,15 @@ export class FmmaTable<T = any> extends LitElement {
                         <th style="position:relative;">
                             ${x.titleRender?.() ?? x.title ?? x.field}
                             <div class="fmma-table-buttons">
-                                <button class="fa-solid fa-eye-slash" @click=${events.hideCol(x)}></button>
-                                <button class="fa-solid ${this._getSortIcon(x)}" @click=${events.sortCol(x)}></button>
+                                <button class="fmma-table-button fa-solid fa-eye-slash" @click=${events.hideCol(x)}></button>
+                                <button class="fmma-table-button fa-solid ${this._getSortIcon(x)}" @click=${events.sortCol(x)}></button>
                                 ${this._renderFilterButton(x, filterValues[i])}
                             </div>
                         </th>
                         `)}
                         <th>
-                            ${this.delete == null ? nothing : html`<button class="fa-solid fa-trash" .disabled=${this._selectedRows.length === 0} @click=${events.deleteSelected}></button>`}
-                            ${this.add == null ? nothing : html`<button class="fa-solid fa-plus" @click=${events.addRow}></button>`}
+                            ${this.delete == null ? nothing : html`<button class="fmma-table-button fa-solid fa-trash" .disabled=${this._selectedRows.length === 0} @click=${events.deleteSelected}></button>`}
+                            ${this.add == null ? nothing : html`<button class="fmma-table-button fa-solid fa-plus" @click=${events.addRow}></button>`}
                         </th>
                     </tr>
                 </thead>
@@ -337,8 +338,8 @@ export class FmmaTable<T = any> extends LitElement {
         const events = this._events;
         return html`
             <span class="fmma-table-filter-values-wrapper">
-                <button class="fa-solid ${this._getFilterIcon(x)}" @click=${events.filterToggle(x, filterValues)}></button>
-                <div class="fmma-table-filter-values ${this._filterState.some(y => y.field === x.field) ? 'display-block' : ''}">
+                <button class="fmma-table-button fa-solid ${this._getFilterIcon(x)}" @click=${events.filterToggle(x, filterValues)}></button>
+                <div class="fmma-table-filter-values ${this._filterState.some(y => y.field === x.field) ? 'fmma-display-block' : ''}">
                     <div style="white-space:nowrap;"><input type="checkbox" @click=${events.filterColAll(x, filterValues)} .checked=${this._getFilterCheckedAll(x, filterValues)}>Vælg alle</div>
                     ${filterValues.map(v => html`
                         <div style="white-space:nowrap;"><input type="checkbox" @click=${events.filterCol(x, v)} .checked=${this._getFilterChecked(x, v)}>${v}</div>
@@ -405,18 +406,18 @@ export class FmmaTable<T = any> extends LitElement {
         return x;
     }
 
-    private _align(field: Field, x: any): 'align-right' | 'align-left' | 'align-center' {
+    private _align(field: Field, x: any): 'fmma-align-left' | 'fmma-align-center' | 'fmma-align-right' {
         if (field.align)
-            return `align-${field.align}`;
+            return `fmma-align-${field.align}`;
         if (x == null)
-            return 'align-left';
+            return 'fmma-align-left';
         if (typeof x._d === 'number' || x instanceof Date) {
-            return 'align-center'
+            return 'fmma-align-center'
         }
         if (typeof x === 'number') {
-            return 'align-right'
+            return 'fmma-align-right'
         }
-        return 'align-left';
+        return 'fmma-align-left';
     }
 
     private _getSortFunction = (a: Cell<T>[], b: Cell<T>[]) => {
