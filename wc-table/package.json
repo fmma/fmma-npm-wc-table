@@ -1,6 +1,6 @@
 {
   "name": "@fmma-npm/wc-table",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A web-component table tag <fmma-table>",
   "keywords": ["web-components", "table"],
   "main": "lib/index.js",
