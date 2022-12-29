@@ -35,25 +35,21 @@ elt.fields = [
         field: 'x',
         decimalPlaces: 2,
         unit: 'kr.',
-        edit: (newValue, row) => {
-            row.x = +newValue;
-            elt.requestUpdate();
-        },
-        inputType: "number"
+        render: (row, i) => html`<p>${row.x.toFixed(2)}</p>`,
+        renderTitle: () => html`<p>X</p>`,
+        renderEdit: (row, i) => {
+            return html`<input .value="${row.x.toFixed(2)}" @change=${(e: any) => row.x = +e.target.value}>`
+        }
     },
     {
-        field: 'y',
-        edit: (newValue, row) => {
-            if(newValue === 'nu')
-                row.y = new Date();
-            else {
-                row.y = new Date(newValue);
-            }
-        },
-        inputType: "date"
+        field: 'y'
     },
     {
-        field: 'texttext'
+        field: 'texttext',
+        renderEdit: (row, i) => {
+            return html`<textarea .value="${row.texttext}" @change=${(e: any) => row.texttext = e.target.value}>`
+        },
+        tdStyle: 'min-width:400px'
     },
     {
         field: 'very-long-property-name'

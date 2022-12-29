@@ -22,9 +22,9 @@ export interface Field<T = any> {
     decimalPlaces?: number;
     align?: 'left' | 'right' | 'center';
     render?: (row: T, i: number) => unknown;
-    titleRender?: () => unknown;
-    edit?: (newValue: string, row: T, index: number) => void | Promise<void>;
-    inputType?: "hidden" | "text" | "search" | "tel" | "url" | "email" | "password" | "datetime" | "date" | "month" | "week" | "time" | "datetime-local" | "number" | "range" | "color" | "checkbox" | "radio" | "file" | "submit" | "image" | "reset" | "button";
+    renderEdit?: (row: T, i: number) => unknown;
+    renderTitle?: () => unknown;
+    tdStyle?: string;
 }
 
 @customElement('fmma-table')
@@ -74,9 +74,10 @@ export class FmmaTable<T = any> extends LitElement {
 
     protected override updated(_changedProperties: Map<string, any>): void {
         if(_changedProperties.has('_lastClickedCell')) {
-            const inputElement = this.renderRoot.querySelector('#fmma-cell-input') as HTMLInputElement;
-            inputElement.focus();
-            inputElement.select();
+            const inputElement = this.renderRoot.querySelector('#fmma-cell-input input, #fmma-cell-input textarea, #fmma-cell-input select') as HTMLTextAreaElement | HTMLInputElement | HTMLSelectElement;
+            inputElement?.focus?.();
+            (inputElement as HTMLTextAreaElement | HTMLInputElement )?.select?.();
+            inputElement?.scroll?.(0,0);
         }
     }
 
@@ -141,14 +142,8 @@ export class FmmaTable<T = any> extends LitElement {
             this._filterState = [...this._filterState.filter(x => x.field !== field.field), { field: field.field, values: checked ? values : [] }]
         },
 
-        cellInputChanged: (cell: Cell<T>) => (event: Event) => {
-            const input = event.composedPath()[0] as HTMLInputElement;
-            const newValue = input.value;
-            cell.field.edit?.(newValue, cell.row, cell.i);
-        },
-
         cellClick: (cell: Cell<T>) => (event: MouseEvent) => {
-            if(cell.field.edit == null) {
+            if(cell.field.renderEdit == null) {
                 this._lastClickedCell = undefined;
             }
             else {
@@ -339,8 +334,12 @@ export class FmmaTable<T = any> extends LitElement {
                 .fmma-cell-contents {
                     flex-grow: 1;
                     position: relative;
-                    text-overflow: ellipsis;
-                    overflow: hidden;
+                    white-space: normal;
+                }
+
+                #fmma-cell-input > * {
+                    width: 100%;
+                    height: 100%;
                 }
             </style>
 
@@ -367,7 +366,7 @@ export class FmmaTable<T = any> extends LitElement {
                     <tr>
                         ${this.cols.map((x, i) => html`
                         <th style="position:relative;">
-                            ${x.titleRender?.() ?? x.title ?? x.field}
+                            ${x.renderTitle?.() ?? x.title ?? x.field}
                             <div class="fmma-table-buttons">
                                 <button class="fmma-table-button fa-solid fa-eye-slash" @click=${events.hideCol(x)}></button>
                                 <button class="fmma-table-button fa-solid ${this._getSortIcon(x)}" @click=${events.sortCol(x)}></button>
@@ -435,11 +434,12 @@ export class FmmaTable<T = any> extends LitElement {
     }
 
     private _renderRow = (row: Cell<T>[]) => {
-        return html`
-            <tr>
-                ${row.map(cell => html`
+
+        const _renderCell = (cell: Cell<T>) => {
+            return html`
                 <td
-                    tabindex="${cell.field.edit == null || this._lastClickedCell?.field == cell.field.field  && this._lastClickedCell.row == cell.i  ? '' : '0'}"
+                    style="${cell.field.tdStyle ?? ''}"
+                    tabindex="${cell.field.renderEdit == null || this._lastClickedCell?.field == cell.field.field && this._lastClickedCell.row == cell.i ? '' : '0'}"
                     class="${cell.classes.join(' ')}"
                     @click=${this._events.cellClick(cell)}
                     @focus=${this._events.cellClick(cell)}
@@ -451,19 +451,23 @@ export class FmmaTable<T = any> extends LitElement {
                         </span>
                         <span class="fmma-cell-contents">
                             ${cell.isLastClicked ? html`
-                                <input
-                                    type="${cell.field.inputType ?? 'text'}"
+                                <div
+                                    style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; border: 0; background-color: white;"
                                     id="fmma-cell-input"
-                                    style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; border: 0;"
-                                    @change=${this._events.cellInputChanged(cell)}
-                                    .value="${cell.field.inputType === 'date' ? cell.value.toISOString().substring(0,10) : cell.text}"
                                 >
+                                ${cell.field.renderEdit?.(cell.row, cell.i)}
+                                </div>
                             ` : nothing}
                             ${cell.field.render?.(cell.row, cell.i) ?? cell.text}
                         </span>
                     </span>
                 </td>
-                `)}
+            `;
+        };
+
+        return html`
+            <tr>
+                ${row.map(_renderCell)}
             </tr>
         `;
     }
