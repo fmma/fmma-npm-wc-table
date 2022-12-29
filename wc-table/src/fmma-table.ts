@@ -1,17 +1,18 @@
-import { html, LitElement, nothing } from "lit";
+import { html, LitElement, nothing, PropertyValueMap } from "lit";
 import { property, customElement, state } from 'lit/decorators.js';
 
 export type StringKeyOf<T> = keyof T & string;
 
 interface Cell<T> {
+    row: T;
     field: Field<T>;
     value: any;
     text: string;
     searchText: string;
     sortValue: any;
     classes: string[];
-    originalIndex: number;
-    render: () => unknown;
+    i: number;
+    isLastClicked: boolean;
 }
 
 export interface Field<T = any> {
@@ -22,6 +23,8 @@ export interface Field<T = any> {
     align?: 'left' | 'right' | 'center';
     render?: (row: T, i: number) => unknown;
     titleRender?: () => unknown;
+    edit?: (newValue: string, row: T, index: number) => void | Promise<void>;
+    inputType?: "hidden" | "text" | "search" | "tel" | "url" | "email" | "password" | "datetime" | "date" | "month" | "week" | "time" | "datetime-local" | "number" | "range" | "color" | "checkbox" | "radio" | "file" | "submit" | "image" | "reset" | "button";
 }
 
 @customElement('fmma-table')
@@ -65,6 +68,17 @@ export class FmmaTable<T = any> extends LitElement {
 
     @state()
     private _selectedRows: number[] = [];
+
+    @state()
+    private _lastClickedCell?: { row: number, field: StringKeyOf<T> };
+
+    protected override updated(_changedProperties: Map<string, any>): void {
+        if(_changedProperties.has('_lastClickedCell')) {
+            const inputElement = this.renderRoot.querySelector('#fmma-cell-input') as HTMLInputElement;
+            inputElement.focus();
+            inputElement.select();
+        }
+    }
 
     _events = {
         search: () => {
@@ -117,7 +131,7 @@ export class FmmaTable<T = any> extends LitElement {
                 this._filterState = this._filterState.filter(x => x.field !== field.field);
             }
             else {
-                this._filterState = [...this._filterState.filter(x => x.field !== field.field), { field: field.field, values }];
+                this._filterState = [...this._filterState.filter(x => x.field !== field.field), { field: field.field, values: [] }];
             }
         },
 
@@ -127,18 +141,30 @@ export class FmmaTable<T = any> extends LitElement {
             this._filterState = [...this._filterState.filter(x => x.field !== field.field), { field: field.field, values: checked ? values : [] }]
         },
 
+        cellInputChanged: (cell: Cell<T>) => (event: Event) => {
+            const input = event.composedPath()[0] as HTMLInputElement;
+            const newValue = input.value;
+            cell.field.edit?.(newValue, cell.row, cell.i);
+        },
+
         cellClick: (cell: Cell<T>) => (event: MouseEvent) => {
+            if(cell.field.edit == null) {
+                this._lastClickedCell = undefined;
+            }
+            else {
+                this._lastClickedCell = { field: cell.field.field, row: cell.i };
+            }
             if (event.ctrlKey) {
-                if (this._selectedRows.includes(cell.originalIndex)) {
-                    this._selectedRows = this._selectedRows.filter(x => x !== cell.originalIndex);
+                if (this._selectedRows.includes(cell.i)) {
+                    this._selectedRows = this._selectedRows.filter(x => x !== cell.i);
 
                 }
                 else {
-                    this._selectedRows = [...this._selectedRows, cell.originalIndex];
+                    this._selectedRows = [...this._selectedRows, cell.i];
                 }
             }
             else {
-                this._selectedRows = [cell.originalIndex];
+                this._selectedRows = [cell.i];
             }
         },
 
@@ -156,19 +182,25 @@ export class FmmaTable<T = any> extends LitElement {
     override render() {
         const events = this._events;
 
-        let tableData: Cell<T>[][] = this.rows.map((x, i) => {
+        let tableData: Cell<T>[][] = this.rows.map((row, i) => {
             return this.cols.map((field) => {
-                const value = x[field.field];
+                const value: any = row[field.field];
                 const text = this._renderValue(field, value);
+                const isLastClicked = this._lastClickedCell?.field === field.field && this._lastClickedCell.row === i;
                 return {
+                    row,
                     field,
                     value,
                     text,
                     searchText: text.toLocaleLowerCase('da-DK'),
                     sortValue: this._sortValue(field, value),
-                    classes: [this._align(field, value), ...this._selectedRows.includes(i) ? ['fmma-selected'] : []],
-                    originalIndex: i,
-                    render: () => field.render?.(x, i) ?? text
+                    classes: [
+                        this._align(field, value),
+                        ...this._selectedRows.includes(i) ? ['fmma-selected'] : [],
+                        ...isLastClicked ? ['fmma-cell-selected'] : []
+                    ],
+                    i,
+                    isLastClicked
                 };
             })
         });
@@ -177,9 +209,9 @@ export class FmmaTable<T = any> extends LitElement {
             tableData = tableData.filter(x => x.some(y => y.searchText.includes(this._searchText)));
         }
 
-        const filterValues = this.cols.map((_, i) => {
+        const filterValues = this.cols.map((v, i) => {
             const set = new Set(tableData.map(x => x[i].searchText));
-            if(set.size === tableData.length) {
+            if (set.size === tableData.length) {
                 return [];
             }
             return [...set];
@@ -187,7 +219,7 @@ export class FmmaTable<T = any> extends LitElement {
 
         if (this._filterState.length > 0) {
             for (const { field, values } of this._filterState) {
-                if(values.length > 0)
+                if (values.length > 0)
                     tableData = tableData.filter(x => values.includes(x.find(y => y.field.field === field)?.searchText ?? ''))
             }
         }
@@ -195,7 +227,6 @@ export class FmmaTable<T = any> extends LitElement {
         if (this._sortState.length > 0) {
             tableData.sort(this._getSortFunction)
         }
-
 
         return html`
             <style>
@@ -210,16 +241,23 @@ export class FmmaTable<T = any> extends LitElement {
                     background-color: #DDEFEF;
                     border: solid 1px #DDEEEE;
                     color: #336B6B;
-                    padding: 10px;
+                    padding: 5px;
                     text-align: center;
                     text-shadow: 1px 1px 1px #fff;
+                    min-width: 100px;
+                    max-width: 400px;
                 }
 
                 .fmma-table tbody td {
                     border: solid 1px #DDEEEE;
                     color: #333;
-                    padding: 10px;
+                    padding: 5px;
                     text-shadow: 1px 1px 1px #fff;
+                    max-width: 400px;
+                }
+
+                .fmma-table tbody td input {
+                    margin: -2px;
                 }
 
                 .fmma-table thead th .fmma-table-buttons {
@@ -238,6 +276,18 @@ export class FmmaTable<T = any> extends LitElement {
 
                 .fmma-table .fmma-selected {
                     background-color: #DDEFEF;
+                }
+
+                .fmma-table .fmma-align-left input {
+                    text-align: left;
+                }
+
+                .fmma-table .fmma-align-center input {
+                    text-align: center;
+                }
+
+                .fmma-table .fmma-align-right input {
+                    text-align: right;
                 }
 
                 .fmma-table .fmma-align-left {
@@ -285,6 +335,13 @@ export class FmmaTable<T = any> extends LitElement {
                 .fmma-table .fmma-display-block {
                     display: block;
                 }
+
+                .fmma-cell-contents {
+                    flex-grow: 1;
+                    position: relative;
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                }
             </style>
 
             <span class="fmma-table-button fa-solid fa-magnifying-glass"></span>
@@ -325,24 +382,28 @@ export class FmmaTable<T = any> extends LitElement {
                     </tr>
                 </thead>
                 <tbody>
-                    ${tableData.map(this._renderRow)}
+                    ${tableData.map(row => this._renderRow(row))}
                 </tbody>
             </table>
         `;
     }
 
     private _renderFilterButton(x: Field<T>, filterValues: string[]) {
-        if(filterValues.length === 0)
+        if (filterValues.length === 0)
             return nothing;
 
         const events = this._events;
         return html`
             <span class="fmma-table-filter-values-wrapper">
-                <button class="fmma-table-button fa-solid ${this._getFilterIcon(x)}" @click=${events.filterToggle(x, filterValues)}></button>
-                <div class="fmma-table-filter-values ${this._filterState.some(y => y.field === x.field) ? 'fmma-display-block' : ''}">
-                    <div style="white-space:nowrap;"><input type="checkbox" @click=${events.filterColAll(x, filterValues)} .checked=${this._getFilterCheckedAll(x, filterValues)}>Vælg alle</div>
+                <button class="fmma-table-button fa-solid ${this._getFilterIcon(x)}" @click=${events.filterToggle(x,
+            filterValues)}></button>
+                <div
+                    class="fmma-table-filter-values ${this._filterState.some(y => y.field === x.field) ? 'fmma-display-block' : ''}">
+                    <div style="white-space:nowrap;"><input type="checkbox" @click=${events.filterColAll(x, filterValues)}
+                            .checked=${this._getFilterCheckedAll(x, filterValues)}>Vælg alle</div>
                     ${filterValues.map(v => html`
-                        <div style="white-space:nowrap;"><input type="checkbox" @click=${events.filterCol(x, v)} .checked=${this._getFilterChecked(x, v)}>${v}</div>
+                    <div style="white-space:nowrap;"><input type="checkbox" @click=${events.filterCol(x, v)}
+                            .checked=${this._getFilterChecked(x, v)}>${v}</div>
                     `)}
                 </div>
             </span>
@@ -376,8 +437,33 @@ export class FmmaTable<T = any> extends LitElement {
     private _renderRow = (row: Cell<T>[]) => {
         return html`
             <tr>
-                ${row.map(cell => html`<td class="${cell.classes.join(' ')}" @click=${this._events.cellClick(cell)}>${cell.render()}
-                </td>`)}
+                ${row.map(cell => html`
+                <td
+                    tabindex="${cell.field.edit == null || this._lastClickedCell?.field == cell.field.field  && this._lastClickedCell.row == cell.i  ? '' : '0'}"
+                    class="${cell.classes.join(' ')}"
+                    @click=${this._events.cellClick(cell)}
+                    @focus=${this._events.cellClick(cell)}
+                    title="${cell.text}"
+                >
+                    <span style="display: flex; flex-direction: row-reverse; white-space: nowrap;">
+                        <span style="text-align: left; padding-left: 3px; color: darkgray;">
+                            ${cell.field.unit}
+                        </span>
+                        <span class="fmma-cell-contents">
+                            ${cell.isLastClicked ? html`
+                                <input
+                                    type="${cell.field.inputType ?? 'text'}"
+                                    id="fmma-cell-input"
+                                    style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; border: 0;"
+                                    @change=${this._events.cellInputChanged(cell)}
+                                    .value="${cell.field.inputType === 'date' ? cell.value.toISOString().substring(0,10) : cell.text}"
+                                >
+                            ` : nothing}
+                            ${cell.field.render?.(cell.row, cell.i) ?? cell.text}
+                        </span>
+                    </span>
+                </td>
+                `)}
             </tr>
         `;
     }
@@ -392,7 +478,7 @@ export class FmmaTable<T = any> extends LitElement {
             return x.toLocaleString('da-DK').replace(' 00.00.00', '');
         }
         if (typeof x === 'number') {
-            return `${x.toFixed(field.decimalPlaces ?? 2)} ${field.unit ?? ''}`;
+            return `${x.toFixed(field.decimalPlaces ?? 2)}`;
         }
         return String(x);
     }
@@ -433,10 +519,10 @@ export class FmmaTable<T = any> extends LitElement {
             }
         }
 
-        if (a[0].originalIndex < b[0].originalIndex)
+        if (a[0].i < b[0].i)
             return -1;
 
-        if (a[0].originalIndex > b[0].originalIndex)
+        if (a[0].i > b[0].i)
             return 1;
 
         return 0;

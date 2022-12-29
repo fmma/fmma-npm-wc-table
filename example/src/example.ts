@@ -22,7 +22,7 @@ const data = [
     { x: -30, y: new Date(2010, 2, 2) },
     { x: 20, y: new Date(2022, 2, 2) },
     { x: -30, y: new Date(2010, 2, 2) },
-].map((x, i) => ({ ...x, i, texttext: 'text text text text text text ' + i }));
+].map((x, i) => ({ ...x, i, texttext: 'text text text text text text text text text text text text text text text text text text text text text text text texttext text text text text text text text text text text text text text text text text text text text text text text texttext text text text text text text text text text text text text text text text text text text text text text text texttext text text text text text text text text text text text text text text text text text text text text text text text ' + i }));
 
 type Data = (typeof data)[number];
 
@@ -33,19 +33,57 @@ elt.fields = [
     },
     {
         field: 'x',
-        render: (row, i) => html`
-            <input .value=${String(row.x)} style="text-align:right; width:100px;" @change=${(e: Event) => {
-            const input = e.composedPath()[0] as HTMLInputElement;
-            row.x = +input.value;
+        decimalPlaces: 2,
+        unit: 'kr.',
+        edit: (newValue, row) => {
+            row.x = +newValue;
             elt.requestUpdate();
-        }}> kr.
-        `
+        },
+        inputType: "number"
     },
     {
-        field: 'y'
+        field: 'y',
+        edit: (newValue, row) => {
+            if(newValue === 'nu')
+                row.y = new Date();
+            else {
+                row.y = new Date(newValue);
+            }
+        },
+        inputType: "date"
     },
     {
         field: 'texttext'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
+    },
+    {
+        field: 'very-long-property-name'
     },
     {
         field: 'very-long-property-name'
