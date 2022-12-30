@@ -13,6 +13,7 @@ interface Cell<T> {
     classes: string[];
     i: number;
     isLastClicked: boolean;
+    editable: boolean;
 }
 
 export interface Field<T = any> {
@@ -23,6 +24,7 @@ export interface Field<T = any> {
     align?: 'left' | 'right' | 'center';
     render?: (row: T, i: number) => unknown;
     renderEdit?: (row: T, i: number) => unknown;
+    editable?: (row: T, i: number) => boolean;
     renderTitle?: () => unknown;
     tdStyle?: string;
 }
@@ -143,7 +145,7 @@ export class FmmaTable<T = any> extends LitElement {
         },
 
         cellClick: (cell: Cell<T>) => (event: MouseEvent) => {
-            if(cell.field.renderEdit == null) {
+            if(!cell.editable) {
                 this._lastClickedCell = undefined;
             }
             else {
@@ -195,7 +197,8 @@ export class FmmaTable<T = any> extends LitElement {
                         ...isLastClicked ? ['fmma-cell-selected'] : []
                     ],
                     i,
-                    isLastClicked
+                    isLastClicked,
+                    editable: field.editable?.(row, i) ?? field.renderEdit != null
                 };
             })
         });
@@ -340,6 +343,7 @@ export class FmmaTable<T = any> extends LitElement {
                 #fmma-cell-input > * {
                     width: 100%;
                     height: 100%;
+                    min-height: 1em;
                 }
             </style>
 
@@ -435,22 +439,22 @@ export class FmmaTable<T = any> extends LitElement {
 
     private _renderRow = (row: Cell<T>[]) => {
 
+
         const _renderCell = (cell: Cell<T>) => {
             return html`
                 <td
                     style="${cell.field.tdStyle ?? ''}"
-                    tabindex="${cell.field.renderEdit == null || this._lastClickedCell?.field == cell.field.field && this._lastClickedCell.row == cell.i ? '' : '0'}"
+                    tabindex="${!cell.editable || this._lastClickedCell?.field == cell.field.field && this._lastClickedCell.row == cell.i ? '' : '0'}"
                     class="${cell.classes.join(' ')}"
                     @click=${this._events.cellClick(cell)}
                     @focus=${this._events.cellClick(cell)}
-                    title="${cell.text}"
                 >
                     <span style="display: flex; flex-direction: row-reverse; white-space: nowrap;">
                         <span style="text-align: left; padding-left: 3px; color: darkgray;">
                             ${cell.field.unit}
                         </span>
                         <span class="fmma-cell-contents">
-                            ${cell.isLastClicked ? html`
+                            ${cell.editable && cell.isLastClicked ? html`
                                 <div
                                     style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; border: 0; background-color: white;"
                                     id="fmma-cell-input"
@@ -475,9 +479,6 @@ export class FmmaTable<T = any> extends LitElement {
     private _renderValue(field: Field, x: any): string {
         if (x == null)
             return '';
-        if (typeof x._d === 'number') {
-            return new Date(x._d).toLocaleString('da-DK').replace(' 00.00.00', '');
-        }
         if (x instanceof Date) {
             return x.toLocaleString('da-DK').replace(' 00.00.00', '');
         }
@@ -490,9 +491,6 @@ export class FmmaTable<T = any> extends LitElement {
     private _sortValue(field: Field, x: any): unknown {
         if (x == null)
             return '';
-        if (typeof x._d === 'number') {
-            return x._d;
-        }
         return x;
     }
 
@@ -501,7 +499,7 @@ export class FmmaTable<T = any> extends LitElement {
             return `fmma-align-${field.align}`;
         if (x == null)
             return 'fmma-align-left';
-        if (typeof x._d === 'number' || x instanceof Date) {
+        if (x instanceof Date) {
             return 'fmma-align-center'
         }
         if (typeof x === 'number') {

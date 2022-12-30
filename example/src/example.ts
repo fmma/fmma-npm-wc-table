@@ -35,20 +35,16 @@ elt.fields = [
         field: 'x',
         decimalPlaces: 2,
         unit: 'kr.',
-        render: (row, i) => html`<p>${row.x.toFixed(2)}</p>`,
+        render: row => html`<p>${row.x.toFixed(2)}</p>`,
         renderTitle: () => html`<p>X</p>`,
-        renderEdit: (row, i) => {
-            return html`<input .value="${row.x.toFixed(2)}" @change=${(e: any) => row.x = +e.target.value}>`
-        }
+        renderEdit: row => html`<input .value="${row.x.toFixed(2)}" @change=${(e: any) => row.x = +e.target.value}>`,
     },
     {
         field: 'y'
     },
     {
         field: 'texttext',
-        renderEdit: (row, i) => {
-            return html`<textarea .value="${row.texttext}" @change=${(e: any) => row.texttext = e.target.value}>`
-        },
+        renderEdit: row => html`<textarea .value="${row.texttext}" @change=${(e: any) => row.texttext = e.target.value}>`,
         tdStyle: 'min-width:400px'
     },
     {
