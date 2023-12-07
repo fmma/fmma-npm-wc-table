@@ -18,7 +18,7 @@
     "@web/rollup-plugin-copy": "^0.3.0",
     "@web/rollup-plugin-html": "^1.11.0",
     "concurrently": "^7.6.0",
-    "lit": "^2.5.0",
+    "lit": "^3.1.0",
     "rollup": "^2.79.1",
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-minify-html-literals": "^1.2.6",
